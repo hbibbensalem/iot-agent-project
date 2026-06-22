@@ -11,8 +11,8 @@ load_dotenv()
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 def simulate_sensor():
-    print("✅ Simulateur démarré")
-    print(f"📡 Envoie vers: {API_URL}/ingest")
+    print(" Simulateur démarré")
+    print(f" Envoie vers: {API_URL}/ingest")
 
     try:
         while True:
@@ -23,7 +23,7 @@ def simulate_sensor():
             # Parfois on simule une anomalie (10% de chance)
             if random.random() < 0.1:
                 temperature = round(random.uniform(35.0, 42.0), 1)
-                print("🔥 ANOMALIE SIMULÉE !")
+                print(" ANOMALIE SIMULÉE !")
 
             data = {
                 "device_id": "capteur-salle-101",
@@ -46,16 +46,16 @@ def simulate_sensor():
                     severity = result["analysis"]["severity"]
                     print(f"📡 Envoyé → Temp: {temperature}°C | Hum: {humidity}% | Status: {status} | Severity: {severity}")
                 else:
-                    print(f"❌ Erreur API: {response.status_code}")
+                    print(f" Erreur API: {response.status_code}")
 
             except Exception as e:
-                print(f"❌ Erreur connexion: {e}")
+                print(f" Erreur connexion: {e}")
 
             time.sleep(5)  # Toutes les 5 secondes
 
     except KeyboardInterrupt:
         print("
-🛑 Arrêt du simulateur")
+ Arrêt du simulateur")
 
 if __name__ == "__main__":
     simulate_sensor()
