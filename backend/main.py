@@ -59,7 +59,7 @@ async def analyze_with_groq(temperature: float, humidity: float) -> dict:
                 "Content-Type": "application/json"
             },
             json={
-                "model": "llama3-8b-8192",
+                "model": "llama-3.1-8b-instant",
                 "messages": [
                     {"role": "system", "content": "Tu es un agent IoT expert. Réponds uniquement en JSON."},
                     {"role": "user", "content": prompt}
