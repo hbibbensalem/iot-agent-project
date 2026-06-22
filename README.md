@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🤖 Agentic IoT System
 
 Système IoT agentique complet avec analyse IA en temps réel.
@@ -80,3 +81,7 @@ Accéder au dashboard à l'URL fournie par Render.
 ## 📝 License
 
 MIT
+=======
+# iot-agent-project
+Agentic IoT system with AI analysis - IoT sensors → AI agent → alerts
+>>>>>>> 1c85782e7502c4efe63b812196c76e7cf858f720
