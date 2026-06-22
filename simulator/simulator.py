@@ -54,8 +54,7 @@ def simulate_sensor():
             time.sleep(5)  # Toutes les 5 secondes
 
     except KeyboardInterrupt:
-        print("
- Arrêt du simulateur")
+        print("Arrêt du simulateur")
 
 if __name__ == "__main__":
     simulate_sensor()
