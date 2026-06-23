@@ -51,7 +51,7 @@ def simulate_sensor():
             except Exception as e:
                 print(f" Erreur connexion: {e}")
 
-            time.sleep(5)  # Toutes les 5 secondes
+            time.sleep(60)  # Toutes les 5 secondes
 
     except KeyboardInterrupt:
         print("Arrêt du simulateur")
