@@ -11,14 +11,24 @@ load_dotenv()
 
 app = FastAPI(title="IoT Agent API", version="1.0")
 
-# Supabase
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
 # Groq
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+# Lazy Supabase client
+_supabase_client = None
+
+def get_supabase() -> Client:
+    """Lazy initialization - crée le client uniquement quand nécessaire"""
+    global _supabase_client
+    if _supabase_client is None:
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_KEY")
+        if not supabase_url or not supabase_key:
+            raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables must be set")
+        _supabase_client = create_client(supabase_url, supabase_key)
+    return _supabase_client
+
 
 class SensorData(BaseModel):
     device_id: str
@@ -26,6 +36,7 @@ class SensorData(BaseModel):
     humidity: float
     timestamp: str
     location: str
+
 
 async def analyze_with_groq(temperature: float, humidity: float) -> dict:
     """Appelle Groq LLM pour analyser les données capteur"""
@@ -94,6 +105,7 @@ async def analyze_with_groq(temperature: float, humidity: float) -> dict:
                 "reason": "Réponse LLM non parsable"
             }
 
+
 @app.post("/ingest")
 async def ingest_data(data: SensorData):
     """Reçoit les données du simulateur, analyse avec Groq, stocke dans Supabase"""
@@ -115,7 +127,8 @@ async def ingest_data(data: SensorData):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
 
-    # Insérer dans Supabase
+    # Insérer dans Supabase (lazy init)
+    supabase = get_supabase()
     result = supabase.table("sensor_readings").insert(record).execute()
 
     return {
@@ -124,17 +137,20 @@ async def ingest_data(data: SensorData):
         "record": record
     }
 
+
 @app.get("/data")
 async def get_data(limit: int = 110):
     """Récupère les dernières données pour le dashboard"""
+    supabase = get_supabase()
     result = supabase.table("sensor_readings").select("*").order("created_at", desc=True).limit(limit).execute()
     return result.data
+
 
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "iot-agent-api"}
 
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-"# Redeploy" 
