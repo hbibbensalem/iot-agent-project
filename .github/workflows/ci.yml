@@ -17,40 +17,22 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install backend dependencies
+    - name: Install dependencies
       run: |
-        cd backend
-        pip install -r requirements.txt
-
-    - name: Install dashboard dependencies
-      run: |
-        cd dashboard
-        pip install -r requirements.txt
-
-    - name: Install simulator dependencies
-      run: |
-        cd simulator
-        pip install -r requirements.txt
+        pip install flake8 pytest
+        cd backend && pip install -r requirements.txt && cd ..
+        cd dashboard && pip install -r requirements.txt && cd ..
+        cd simulator && pip install -r requirements.txt && cd ..
 
     - name: Lint with flake8
       run: |
-        pip install flake8
         flake8 backend/ dashboard/ simulator/ --count --select=E9,F63,F7,F82 --show-source --statistics
 
-    - name: Test backend imports
+    - name: Test imports
       run: |
-        cd backend
-        python -c "import main; print('Backend imports OK')"
-
-    - name: Test dashboard imports
-      run: |
-        cd dashboard
-        python -c "import app; print('Dashboard imports OK')"
-
-    - name: Test simulator imports
-      run: |
-        cd simulator
-        python -c "import simulator; print('Simulator imports OK')"
+        cd backend && python -c "import main; print('✅ Backend OK')" && cd ..
+        cd dashboard && python -c "import app; print('✅ Dashboard OK')" && cd ..
+        cd simulator && python -c "import simulator; print('✅ Simulator OK')" && cd ..
 
   build:
     needs: test
@@ -58,37 +40,49 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Build backend Docker image
+    - name: Build Docker images
       run: |
-        cd backend
-        docker build -t iot-backend .
+        docker build -t iot-backend ./backend
+        docker build -t iot-dashboard ./dashboard
+        docker build -t iot-simulator ./simulator
+        echo "✅ All images built successfully"
 
-    - name: Build dashboard Docker image
-      run: |
-        cd dashboard
-        docker build -t iot-dashboard .
-
-    - name: Build simulator Docker image
-      run: |
-        cd simulator
-        docker build -t iot-simulator .
-
-  deploy-backend:
+  deploy:
     needs: [test, build]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
     steps:
     - name: Deploy Backend to Render
       run: |
-        curl -X POST "${{ secrets.RENDER_BACKEND_HOOK }}"
-        echo "Backend deployed successfully!"
+        echo "Deploying backend..."
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_BACKEND_HOOK }}")
+        if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "201" ]; then
+          echo "✅ Backend deployed (HTTP $RESPONSE)"
+        else
+          echo "⚠️ Backend deploy hook returned HTTP $RESPONSE"
+          echo "Render service might be waking up from sleep..."
+        fi
 
-  deploy-dashboard:
-    needs: deploy-backend
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
     - name: Deploy Dashboard to Render
       run: |
-        curl -X POST "${{ secrets.RENDER_DASHBOARD_HOOK }}"
-        echo "Dashboard deployed successfully!"
+        echo "Deploying dashboard..."
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_DASHBOARD_HOOK }}")
+        if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "201" ]; then
+          echo "✅ Dashboard deployed (HTTP $RESPONSE)"
+        else
+          echo "⚠️ Dashboard deploy hook returned HTTP $RESPONSE"
+        fi
+
+    - name: Deploy Simulator to Railway (optional)
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      run: |
+        if [ -n "$RAILWAY_TOKEN" ]; then
+          npm install -g @railway/cli
+          railway login --token "$RAILWAY_TOKEN"
+          railway up --service simulateur
+          echo "✅ Simulator deployed to Railway"
+        else
+          echo "ℹ️ Railway token not set, skipping simulator deploy"
+        fi
