@@ -139,7 +139,7 @@ async def ingest_data(data: SensorData):
 
 
 @app.get("/data")
-async def get_data(limit: int = 110):
+async def get_data(limit: int = 120):
     """Récupère les dernières données pour le dashboard"""
     supabase = get_supabase()
     result = supabase.table("sensor_readings").select("*").order("created_at", desc=True).limit(limit).execute()
